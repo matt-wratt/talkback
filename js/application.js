@@ -6,6 +6,7 @@ var log = logger(renderer());
 var __splice = Array.prototype.splice;
 
 function connect() {
+  log('Connecting', '...');
   var request = new XMLHttpRequest();
   request.open('GET', 'https://slack.com/api/rtm.start?token=' + token(), true);
   request.onload = setupWebSocket;
@@ -17,35 +18,56 @@ function setupWebSocket(event) {
   socket = new WebSocket(response.url);
   socket.onopen = log('Connected');
   socket.onclose = log('Disconnected');
-  socket.onmessage = handleMessage(response.users, response.channels);
+  socket.onmessage = handleMessage(find(response.users), find(response.channels));
+  speak('Connected')();
 }
 
 function handleMessage(users, channels) {
   return function handler(event) {
     var data = JSON.parse(event.data);
     if(data.type === 'message') {
-      var channel = channels.filter(channel => channel.id === data.channel)[0] || {name: 'Direct Message'};
-      var user = users.filter(user => user.id === data.user)[0];
+      var channel = channels(data.channel) || {name: 'Direct Message'};
+      var user = users(data.user) || {real_name: 'Unknown'};
       var message = [channel.name, user.real_name, data.text].join(', ');
+      message = message.replace(/<@([^>]+)>/g, (match, id) => users(id).real_name);
       log('Message', message);
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+      setTimeout(speak(message), 0);
     }
   };
 }
 
 function disconnect() {
+  speechSynthesis.cancel();
+  speak('Disconnecting')();
   if(socket) {
     socket.close();
     socket = null;
   }
 }
 
+function speak(message) {
+  return function() {
+    speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+  };
+}
+
 function token() {
-  return location.search.substr(1).split(/&/).reduce((params, param) => {
+  var token = location.search.substr(1).split(/&/).reduce((params, param) => {
     param = param.split(/=/);
     params[param[0]] = param[1];
     return params;
-  }, {}).token || prompt('Please provide your slack api token (https://api.slack.com/web#auth)');
+  }, {}).token;
+  if(!token) {
+    token = prompt('Please provide your slack api token (https://api.slack.com/web#auth)');
+    location.search = '?token=' + token;
+  }
+  return token;
+}
+
+function find(collection) {
+  return function(id) {
+    return collection.filter(x => x.id === id)[0];
+  };
 }
 
 function logger(renderer) {
