@@ -1,0 +1,19 @@
+{
+  "name": "talkback",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "watchify js/application.js -t 6to5ify -o application.js",
+    "build": "browserify js/application.js -t 6to5ify -o application.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "6to5ify": "^3.1.0",
+    "browserify": "^8.0.3"
+  },
+  "devDependencies": {
+    "watchify": "^2.2.1"
+  }
+}
