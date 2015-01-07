@@ -2,8 +2,12 @@ window.onload = connect;
 window.onbeforeunload = disconnect;
 
 var socket;
+var voice = require('./voice-settings');
 var log = logger(renderer());
+console.log(voice);
 var __splice = Array.prototype.splice;
+
+voice.init(renderer());
 
 function connect() {
   log('Connecting', '...');
@@ -47,7 +51,7 @@ function disconnect() {
 
 function speak(message) {
   return function() {
-    speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+    speechSynthesis.speak(voice.applySettings(new SpeechSynthesisUtterance(message)));
   };
 }
 
@@ -90,16 +94,25 @@ function renderer(logs) {
 
   render();
 
-  return {
+  return (renderer = () => ({
+
     add: (title, log) => {
       logs.push({title: title, text: log});
       render();
-    }
-  };
+    },
+
+    render: render
+
+  }))();
 
   function render() {
     React.render((
-      <div className="container">{logs.map(log => (<div className="alert alert-info"><strong>{log.title}</strong> {log.text}</div>))}</div>
+      <div className="container">
+        {voice.render()}
+        {logs.map(log => (
+          <div className="alert alert-info"><strong>{log.title}</strong> {log.text}</div>
+        ))}
+      </div>
     ), document.body);
   }
 }

@@ -5,8 +5,12 @@ window.onload = connect;
 window.onbeforeunload = disconnect;
 
 var socket;
+var voice = require("./voice-settings");
 var log = logger(renderer());
+console.log(voice);
 var __splice = Array.prototype.splice;
+
+voice.init(renderer());
 
 function connect() {
   log("Connecting", "...");
@@ -52,7 +56,7 @@ function disconnect() {
 
 function speak(message) {
   return function () {
-    speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+    speechSynthesis.speak(voice.applySettings(new SpeechSynthesisUtterance(message)));
   };
 }
 
@@ -99,22 +103,77 @@ function renderer(logs) {
 
   render();
 
-  return {
-    add: function (title, log) {
-      logs.push({ title: title, text: log });
-      render();
-    }
-  };
+  return (renderer = function () {
+    return {
+
+      add: function (title, log) {
+        logs.push({ title: title, text: log });
+        render();
+      },
+
+      render: render
+
+    };
+  })();
 
   function render() {
     React.render(React.createElement("div", {
       className: "container"
-    }, logs.map(function (log) {
+    }, voice.render(), logs.map(function (log) {
       return React.createElement("div", {
         className: "alert alert-info"
       }, React.createElement("strong", null, log.title), " ", log.text);
     })), document.body);
   }
 }
+
+},{"./voice-settings":2}],2:[function(require,module,exports){
+"use strict";
+
+var voices = [];
+var voice;
+
+function defaultVoice() {
+  return voices.filter(function (voice) {
+    return voice["default"];
+  })[0] || voices[0];
+}
+
+function getVoices(renderer) {
+  (function run() {
+    voices = speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      voice = defaultVoice();
+      renderer.render();
+    } else {
+      setTimeout(run, 100);
+    }
+  })();
+}
+
+function setVoice() {
+  voice = voices[this.getDOMNode().value];
+}
+
+module.exports = {
+
+  init: getVoices,
+
+  applySettings: function (message) {
+    if (voice) message.voice = voice;
+    return message;
+  },
+
+  render: function () {
+    return React.createElement("select", {
+      onChange: setVoice
+    }, voices.map(function (voice, id) {
+      return React.createElement("option", {
+        value: id
+      }, voice.name);
+    }));
+  }
+
+};
 
 },{}]},{},[1]);
