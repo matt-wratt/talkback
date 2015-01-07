@@ -35,9 +35,9 @@ function handleMessage(users, channels) {
     if (data.type === "message") {
       var channel = channels(data.channel) || { name: "Direct Message" };
       var user = users(data.user) || { real_name: "Unknown" };
-      var message = [channel.name, user.real_name, data.text].join(", ");
+      var message = [channel.name, username(user), data.text].join(", ");
       message = message.replace(/<@([^>]+)>/g, function (match, id) {
-        return users(id).real_name;
+        return username(users(id));
       });
       log("Message", message);
       setTimeout(speak(message), 0);
@@ -71,6 +71,10 @@ function token() {
     location.search = "?token=" + token;
   }
   return token;
+}
+
+function username(user) {
+  return user.real_name || user.name;
 }
 
 function find(collection) {
