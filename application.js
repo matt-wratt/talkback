@@ -74,7 +74,7 @@ function token() {
 }
 
 function username(user) {
-  return user.real_name || user.name;
+  return user && (user.real_name || user.name) || "Unknown";
 }
 
 function find(collection) {
